@@ -33,8 +33,13 @@ async def get_organizations_for_moderating(query: CallbackQuery, repo: Repo,
 
 
 async def moderate_organization(query: CallbackQuery, callback_data: dict,
-                                 state: FSMContext,repo: Repo):
+                                state: FSMContext, repo: Repo):
     await query.message.edit_reply_markup(reply_markup=None)
     organization_id = int(callback_data['value'])
+    organization = await repo.get_organization_full(organization_id)
     await repo.check_organization(organization_id)
-    await query.bot.send_message(chat_id=query.from_user.id, text="Организация проверена!")
+    await query.bot.send_message(
+        chat_id=organization.creator.telegram_id,
+        text=f"Организация {organization.name} проверена!")
+    await query.bot.send_message(chat_id=query.from_user.id,
+                                 text="Организация проверена!")

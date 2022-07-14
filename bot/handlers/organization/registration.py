@@ -14,8 +14,8 @@ START_MESSAGE = """
 """
 
 
-async def add_new_organization(call: CallbackQuery, state: FSMContext,
-                               repo: Repo):
+async def choose_activities(call: CallbackQuery, state: FSMContext,
+                            repo: Repo):
     await state.reset_state(with_data=False)
     await call.message.edit_reply_markup(reply_markup=None)
     await OrganizationRegistration.choosing_activities.set()
@@ -35,12 +35,11 @@ CHOOSING_DISTRICTS_MESSAGE = """
 """
 
 
-async def set_activity(query: CallbackQuery, state: FSMContext, repo: Repo):
+async def save_activities(query: CallbackQuery, state: FSMContext, repo: Repo):
     """Выбор активности и переход к выбору районов"""
     await query.message.edit_reply_markup(reply_markup=None)
-    logger.warning(state)
     async with state.proxy() as data:
-        activity_ids = [int(i) for i in data['activities'].keys() if
+        activity_ids = [i for i in data['activities'].keys() if
                         i != 'page']
         data['activities'] = activity_ids
     await OrganizationRegistration.next()
@@ -58,13 +57,12 @@ async def navigate_and_update_activities(query: CallbackQuery,
     """Навигация и выбор активностей"""
     async with state.proxy() as data:
         if callback_data['name'] == 'objects':
-            activity_id = callback_data['value']
+            activity_id = int(callback_data['value'])
             if activity_id not in data['activities'].keys():
                 data['activities'][activity_id] = True
             else:
                 del data['activities'][activity_id]
-
-        if callback_data['name'] == 'page':
+        elif callback_data['name'] == 'page':
             data['activities']['page'] = int(callback_data['value'])
         activities = await repo.get_activities()
         await query.message.edit_reply_markup(
@@ -87,7 +85,7 @@ async def save_districts(query: CallbackQuery,
     logger.warning(state)
     await query.message.edit_reply_markup(reply_markup=None)
     async with state.proxy() as data:
-        districts_ids = [int(i) for i in data['districts'].keys() if
+        districts_ids = [i for i in data['districts'].keys() if
                          i != 'page']
         logger.info(f'Districts: {data}')
         data['districts'] = districts_ids
@@ -106,7 +104,7 @@ async def navigate_and_update_districts(query: CallbackQuery,
     async with state.proxy() as data:
         logger.warning(f'nav districts: {data}')
         if callback_data['name'] == 'objects':
-            district_id = callback_data['value']
+            district_id = int(callback_data['value'])
             if district_id not in data.keys():
                 data['districts'][district_id] = True
             else:
@@ -126,7 +124,6 @@ async def navigate_and_update_districts(query: CallbackQuery,
 async def save_name(msg: Message, state: FSMContext, repo: Repo):
     print(msg.text)
     async with state.proxy() as data:
-        print(data)
         districts = await repo.get_districts(data['districts'])
         activities = await repo.get_activities(data['activities'])
     await state.finish()

@@ -1,10 +1,18 @@
+import enum
 from typing import List
 
-from sqlalchemy import Column, BigInteger, ForeignKey, String, Boolean
+from sqlalchemy import Column, BigInteger, ForeignKey, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy_utils import ChoiceType
 
 from database.base import Base
 from database.mixins import PkMixin, TimestampMixin
+
+
+class EventType(enum.Enum):
+    """Типы событий"""
+    DEFAULT = 'DEFAULT'  # Обычное событие
+    RECRUITMENT = 'RECRUITMENT'  # Нужны волонтеры
 
 
 class EcoActivity(PkMixin, Base):
@@ -15,11 +23,15 @@ class EcoActivity(PkMixin, Base):
                                  secondary='eco_activity_organization',
                                  back_populates='eco_activities', )
 
+    events = relationship('Event', secondary='eco_activity_event',
+                          back_populates='eco_activities')
+
     def __str__(self):
         return self.name
 
 
 class District(PkMixin, Base):
+    """Район"""
     name = Column(String, unique=True, nullable=False, index=True)
 
     organizations = relationship('Organization',
@@ -27,6 +39,8 @@ class District(PkMixin, Base):
                                  back_populates='districts')
 
     municipals = relationship('Municipal', back_populates='district')
+    events = relationship('Event', secondary='district_event',
+                          back_populates='districts')
 
     def __str__(self):
         return self.name
@@ -78,6 +92,17 @@ class Organization(PkMixin, TimestampMixin, Base):
         secondary='district_organization',
         back_populates='organizations',
     )
+    events = relationship('Event', back_populates='organization')
+
+    def __str__(self):
+        return self.name
+
+
+class VolunteerType(PkMixin, Base):
+    name = Column(String, index=True)
+
+    events = relationship('Event', secondary='volunteer_type_event',
+                          back_populates='volunteer_types')
 
     def __str__(self):
         return self.name
@@ -132,6 +157,116 @@ class Municipal(PkMixin, Base):
     )
 
     district = relationship('District', back_populates='municipals')
+    events = relationship('Event', secondary='municipal_event',
+                          back_populates='municipals')
 
     def __str__(self):
         return f"{self.name}"
+
+
+class Event(PkMixin, TimestampMixin, Base):
+    """Событие"""
+    name = Column(String, index=True, nullable=False)
+    description = Column(String, nullable=False)
+    type = Column(ChoiceType(EventType, impl=String()), index=True)
+    organization_id = Column(BigInteger, ForeignKey('organization.id'),
+                             index=True, nullable=False)
+
+    mailing = relationship('Mailing', back_populates='event', uselist=False)
+    organization = relationship('Organization', back_populates='events')
+
+    districts = relationship('District', secondary='district_event',
+                             back_populates='events')
+    eco_activities = relationship('EcoActivity', secondary='eco_activity_event',
+                                  back_populates='events')
+    municipals = relationship('Municipal', secondary='municipal_event',
+                              back_populates='events')
+
+    volunteer_types = relationship('VolunteerType',
+                                   secondary='volunteer_type_event',
+                                   back_populates='events')
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def message(self):
+        if self.type == EventType.DEFAULT:
+            return f"В МО {self.municipals[0]} проходит мероприятие {self.name}\n" \
+                   f"Оно относится к активностям: {', '.join(a.name for a in self.eco_activities).lower()}" \
+                   f"Описание:\n{self.description} \n\n Его проводит {self.organization}"
+        elif self.type == EventType.RECRUITMENT:
+            return f"{self.organization} нужны " \
+                   f"{', '.join(v.name for v in self.volunteer_types).lower()} волонтеры в МО " \
+                   f"{self.municipals[0]}\n\nОписание:\n{self.description}"
+        return ""
+
+
+class VolunteerTypeEvent(PkMixin, Base):
+    volunteer_type_id = Column(
+        BigInteger,
+        ForeignKey('volunteer_type.id'),
+        index=True,
+        nullable=False,
+    )
+    event_id = Column(
+        BigInteger,
+        ForeignKey('event.id'),
+        index=True,
+        nullable=False,
+    )
+
+
+class DistrictEvent(PkMixin, Base):
+    district_id = Column(
+        BigInteger,
+        ForeignKey('district.id'),
+        index=True,
+        nullable=False,
+    )
+    event_id = Column(
+        BigInteger,
+        ForeignKey('event.id'),
+        index=True,
+        nullable=False,
+    )
+
+
+class MunicipalEvent(PkMixin, Base):
+    municipal_id = Column(BigInteger, ForeignKey('municipal.id'), index=True,
+                          nullable=False)
+    event_id = Column(
+        BigInteger,
+        ForeignKey('event.id'),
+        index=True,
+        nullable=False,
+    )
+
+
+class EcoActivityEvent(PkMixin, Base):
+    eco_activity_id = Column(
+        BigInteger,
+        ForeignKey('eco_activity.id'),
+        index=True,
+        nullable=False,
+    )
+    event_id = Column(
+        BigInteger,
+        ForeignKey('event.id'),
+        index=True,
+        nullable=False,
+    )
+
+
+class Mailing(PkMixin, TimestampMixin, Base):
+    """Рассылка"""
+    is_executed = Column(Boolean, index=True, default=False)
+    start_execute_datetime = Column(DateTime, nullable=True, index=True)
+    end_execute_datetime = Column(DateTime, nullable=True, index=True)
+    event_id = Column(BigInteger, ForeignKey('event.id'), index=True,
+                      nullable=False)
+
+    event = relationship('Event', back_populates='mailing', uselist=False)
+
+    def __str__(self):
+        return f"{self.id} Mailing (executed: {self.is_executed})"

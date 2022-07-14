@@ -13,7 +13,6 @@ async def choose_organization(query: CallbackQuery, callback_data: dict,
     await query.message.edit_reply_markup(reply_markup=None)
     organizations = await repo.get_checked_organizations(
         user_id=query.from_user.id)
-    await OrganizationManagement.menu.set()
     await query.bot.send_message(
         chat_id=query.from_user.id,
         text=f"Выберите организацию",
@@ -23,11 +22,13 @@ async def choose_organization(query: CallbackQuery, callback_data: dict,
 
 async def organization_menu(query: CallbackQuery, callback_data: dict,
                             state: FSMContext, repo: Repo):
+    await OrganizationManagement.first()
     await query.message.edit_reply_markup(reply_markup=None)
-    organization_id = int(callback_data['value'])
-    organization = await repo.get_organization(organization_id=organization_id)
     async with state.proxy() as data:
-        data['organization_id'] = organization_id
+        if 'organization_id' not in data:
+            data['organization_id'] = int(callback_data['value'])
+        organization = await repo.get_organization(
+            organization_id=data['organization_id'])
     user = await repo.get_user(user_id=query.from_user.id)
     await query.bot.send_message(
         chat_id=query.from_user.id,

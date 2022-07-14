@@ -19,5 +19,4 @@ class DatabaseMiddleWare(LifetimeControllerMiddleware):
     async def post_process(self, obj, data, *args):
         del data["repo"]
         session: AsyncSession = data.get("session")
-        if session:
-            del data["session"]
+        await session.close()

@@ -1,12 +1,11 @@
 from typing import Optional
 
-from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import Connection, select
+from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from database.models import User, District, EcoActivity, Organization, \
-    Municipal, DistrictOrganization
+    Municipal, DistrictOrganization, Event, VolunteerType
 
 
 class Repo:
@@ -34,6 +33,14 @@ class Repo:
         if ids is not None:
             query = query.filter(District.id.in_(ids))
 
+        result = (await self.session.execute(query)).scalars().all()
+        return result
+
+    async def get_municipals(self, ids: list[int] = None) -> Optional[
+        list[Municipal]]:
+        query = select(Municipal)
+        if ids is not None:
+            query = query.filter(Municipal.id.in_(ids))
         result = (await self.session.execute(query)).scalars().all()
         return result
 
@@ -68,10 +75,17 @@ class Repo:
         return result
 
     async def get_municipals_by_organization(self, organization_id: int) -> \
-    Optional[list[Municipal]]:
+            Optional[list[Municipal]]:
         query = select(Municipal).join(DistrictOrganization,
                                        Municipal.district_id == DistrictOrganization.district_id).filter(
             DistrictOrganization.organization_id == organization_id)
+        result = (await self.session.execute(query)).scalars().all()
+        return result
+
+    async def get_municipals_by_districts(self, district_ids: list[int]) -> \
+            Optional[list[Municipal]]:
+        query = select(Municipal).filter(
+            Municipal.district_id.in_(district_ids))
         result = (await self.session.execute(query)).scalars().all()
         return result
 
@@ -80,19 +94,24 @@ class Repo:
         result = (await self.session.execute(query)).scalar()
         return result
 
-    async def get_organization_full_info(self, organization_id: int) -> str:
+    async def get_organization_full(self, organization_id: int) -> Optional[
+        Organization]:
         query = select(Organization).filter_by(id=organization_id).options(
             selectinload(Organization.districts),
-            selectinload(Organization.eco_activities,
-                         selectinload(Organization.creator),
-                         selectinload(Organization.creator,
-                                      Organization.creator.profile))
+            selectinload(Organization.eco_activities),
+            selectinload(Organization.creator),
         )
         result: Optional[Organization] = (
-            await self.session.execute(query)).scalar()
+            await self.session.execute(query)).scalars().first()
+        return result
 
-        info = f"Название: {result.name}\n"
-        return info
+    async def get_organization_full_info(self, organization_id: int) -> str:
+        organization = await self.get_organization_full(organization_id)
+
+        name = f"Название: {organization.name}\n\n"
+        districts = f"Районы: {', '.join([str(d) for d in organization.districts])}\n"
+        eco_activities = f"Активности: {', '.join([str(e) for e in organization.eco_activities])}"
+        return name + districts + eco_activities
 
     async def get_unchecked_organizations(self) -> list[Organization]:
         query = select(Organization).filter(Organization.is_checked == False)
@@ -105,3 +124,61 @@ class Repo:
                                                                 organization_id)
             organization.is_checked = True
             await self.session.commit()
+
+    async def create_event(self, data: dict) -> Event:
+        print(data)
+        async with self.session:
+            event = Event()
+            event.name = data.get('name')
+            event.description = data.get('description')
+            event.type = data.get('type')
+            event.organization_id = data.get('organization_id')
+            event.eco_activities.extend(
+                await self.get_activities([data.get('activity_id')]))
+            event.districts.extend(
+                await self.get_districts([data.get('district_id')]))
+            event.municipals.extend(
+                await self.get_municipals([data.get('municipal_id')]))
+            self.session.add(event)
+            await self.session.commit()
+            await self.session.refresh(event)
+            return event
+
+    async def get_volunteer_types(self, ids: list[int] = None) -> Optional[
+        list[VolunteerType]]:
+        query = select(VolunteerType)
+        if ids is not None:
+            query = query.filter(VolunteerType.id.in_(ids))
+        result = (await self.session.execute(query)).scalars().all()
+        return result
+
+    async def create_volunteer_event(self, data):
+        print(data)
+        async with self.session:
+            event = Event()
+            event.name = ""
+            event.description = data.get('description')
+            event.organization_id = data.get('organization_id')
+            event.districts.extend(
+                await self.get_districts(ids=[data.get('district_id')])),
+            event.municipals.extend(
+                await self.get_municipals(ids=[data.get('municipal_id')])),
+            event.type = data.get('type')
+            event.volunteer_types.extend(
+                await self.get_volunteer_types(ids=data.get('volunteer_ids')))
+            self.session.add(event)
+            await self.session.commit()
+            await self.session.refresh(event)
+            return event
+
+    async def get_event(self, event_id: int) -> Optional[Event]:
+        query = select(Event).filter_by(id=event_id).options(
+            selectinload(Event.districts),
+            selectinload(Event.municipals),
+            selectinload(Event.eco_activities),
+            selectinload(Event.volunteer_types),
+            selectinload(Event.organization),
+        )
+        result: Optional[Organization] = (
+            await self.session.execute(query)).scalars().first()
+        return result

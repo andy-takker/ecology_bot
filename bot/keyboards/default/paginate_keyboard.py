@@ -21,7 +21,7 @@ def get_paginate_keyboard(objects: List, callback_data: CallbackData,
         cb_data = callback_data.new(action=action, name='objects',
                                     value=objects[i].id)
         text = str(objects[i])
-        if with_chose and str(objects[i].id) in cache_objects:
+        if with_chose and objects[i].id in cache_objects:
             text = f"{CHECKBOX}\t{text}"
 
         buttons.append([InlineKeyboardButton(text=text, callback_data=cb_data)])
@@ -43,7 +43,12 @@ def get_paginate_keyboard(objects: List, callback_data: CallbackData,
     if with_chose:
         buttons.append([InlineKeyboardButton(
             'Далее',
-            callback_data=callback_data.new(action=action, name='next',value='next'))])
+            callback_data=callback_data.new(action=action, name='next',
+                                            value='next'))])
+    buttons.append([InlineKeyboardButton(
+        'Назад', callback_data=callback_data.new(action=action, name='back',
+                                                 value='back')
+    )])
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[*buttons]
     )
