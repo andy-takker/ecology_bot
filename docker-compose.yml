@@ -6,8 +6,6 @@ services:
     volumes:
       - ./database/data:/var/lib/postgresql/data
       - ./database/backups:/backups
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
     ports:
       - "${POSTGRES_PORT:-5432}:${POSTGRES_PORT:-5432}"
     environment:
@@ -25,8 +23,6 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
 
   bot:
     image: bot
