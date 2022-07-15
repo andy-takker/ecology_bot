@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from database.models import User, District, EcoActivity, Organization, \
     Municipal, DistrictOrganization, Event, VolunteerType, Profile, \
-    EcoActivityOrganization, EcoActivityProfile
+    EcoActivityOrganization, EcoActivityProfile, EcoActivityEvent
 
 
 class Repo:
@@ -228,4 +228,4 @@ class Repo:
 
         query = select(Profile)\
             .join(EcoActivityProfile, Profile.id == EcoActivityProfile.profile_id)\
-            .filter(0
+            .join(EcoActivityEvent, )
