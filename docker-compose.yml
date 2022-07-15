@@ -1,13 +1,13 @@
 version: '3.9'
 services:
   database:
-    image: postgres:14.3
+    image: postgres:13.4-buster
     restart: on-failure
     volumes:
       - ./database/data:/var/lib/postgresql/data
       - ./database/backups:/backups
-#      - /etc/timezone:/etc/timezone:ro
-#      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
       - "${POSTGRES_PORT:-5432}:${POSTGRES_PORT:-5432}"
     environment:
@@ -20,40 +20,37 @@ services:
   redis:
     image: redis
     restart: on-failure
-    command: "redis-server --requirepass ${REDIS_PASSWORD}"
-    environment:
-      REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-password}
+    command: "redis-server --requirepass ${REDIS_PASSWORD:-password}"
     ports:
-      - "${REDIS_PORT:-6379}:${REDIS_PORT:-6379}"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
-#      - /etc/timezone:/etc/timezone:ro
-#      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   bot:
     image: bot
     depends_on:
       - database
       - redis
-    command: "/sbin/init"
+    command: python3 cli.py
+    restart: on-failure
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        POSTGRES_HOST: ${POSTGRES_HOST}
-        POSTGRES_PORT: ${POSTGRES_PORT}
-        POSTGRES_DB: ${POSTGRES_DB}
-        POSTGRES_USER: ${POSTGRES_USER}
-        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
-        REDIS_HOST: ${REDIS_HOST}
-        REDIS_PORT: ${REDIS_PORT}
-        REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
 
-        TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-        ADMINS: ${ADMINS}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      ADMINS: ${ADMINS}
     privileged: true
 
 volumes:
