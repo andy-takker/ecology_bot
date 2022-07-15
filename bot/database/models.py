@@ -1,7 +1,8 @@
 import enum
 from typing import List
 
-from sqlalchemy import Column, BigInteger, ForeignKey, String, Boolean, DateTime
+from sqlalchemy import Column, BigInteger, ForeignKey, String, Boolean, \
+    DateTime, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import ChoiceType
 
@@ -25,6 +26,8 @@ class EcoActivity(PkMixin, Base):
 
     events = relationship('Event', secondary='eco_activity_event',
                           back_populates='eco_activities')
+    profiles = relationship('Profile', secondary='eco_activity_profile',
+                            back_populates='eco_activities')
 
     def __str__(self):
         return self.name
@@ -70,7 +73,29 @@ class Profile(PkMixin, TimestampMixin, Base):
     user_id = Column(BigInteger, ForeignKey('user.id'), index=True,
                      nullable=False, unique=True)
 
+    municipal_id = Column(BigInteger, ForeignKey('municipal.id'), index=True,
+                          nullable=False)
+
+    is_event_organizer = Column(Boolean, index=True, default=False)
+    name = Column(String, nullable=True)
+    age = Column(Integer, nullable=True)
+
     user = relationship('User', back_populates='profile', uselist=False)
+
+    eco_activities = relationship(
+        'EcoActivity',
+        secondary='eco_activity_profile',
+        back_populates='profiles',
+    )
+    volunteer_types = relationship(
+        'VolunteerType',
+        secondary='volunteer_type_profile',
+        back_populates='profiles',
+    )
+    municipal = relationship('Municipal', back_populates='profiles')
+
+    def __str__(self):
+        return f'Profile {self.id} ({self.user_id})'
 
 
 class Organization(PkMixin, TimestampMixin, Base):
@@ -103,6 +128,8 @@ class VolunteerType(PkMixin, Base):
 
     events = relationship('Event', secondary='volunteer_type_event',
                           back_populates='volunteer_types')
+    profiles = relationship('Profile', secondary='volunteer_type_profile',
+                            back_populates='volunteer_types')
 
     def __str__(self):
         return self.name
@@ -159,6 +186,7 @@ class Municipal(PkMixin, Base):
     district = relationship('District', back_populates='municipals')
     events = relationship('Event', secondary='municipal_event',
                           back_populates='municipals')
+    profiles = relationship('Profile', back_populates='municipal')
 
     def __str__(self):
         return f"{self.name}"
@@ -217,6 +245,21 @@ class VolunteerTypeEvent(PkMixin, Base):
     )
 
 
+class VolunteerTypeProfile(PkMixin, Base):
+    volunteer_type_id = Column(
+        BigInteger,
+        ForeignKey('volunteer_type.id'),
+        index=True,
+        nullable=False,
+    )
+    profile_id = Column(
+        BigInteger,
+        ForeignKey('profile.id'),
+        index=True,
+        nullable=False,
+    )
+
+
 class DistrictEvent(PkMixin, Base):
     district_id = Column(
         BigInteger,
@@ -270,3 +313,10 @@ class Mailing(PkMixin, TimestampMixin, Base):
 
     def __str__(self):
         return f"{self.id} Mailing (executed: {self.is_executed})"
+
+
+class EcoActivityProfile(PkMixin, Base):
+    profile_id = Column(BigInteger, ForeignKey('profile.id'), index=True,
+                        nullable=False)
+    eco_activity_id = Column(BigInteger, ForeignKey('eco_activity.id'),
+                             index=True, nullable=False)

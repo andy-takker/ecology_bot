@@ -1,7 +1,7 @@
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 
-class RegisterVolunteer(StatesGroup):
+class VolunteerRegister(StatesGroup):
     choose_district = State()
     choose_municipal = State()
     enter_name = State()

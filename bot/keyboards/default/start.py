@@ -4,13 +4,20 @@ from database import User
 from keyboards.inline.callback_data import cb_start
 
 
-def get_start_keyboard(user: User):
+def get_start_keyboard(user: User) -> InlineKeyboardMarkup:
     keys = []
     if user.profile is None:
         keys.append([
             InlineKeyboardButton(
                 text='Зарегистрировать профиль волонтера',
                 callback_data=cb_start.new('register_volunteer'),
+            )
+        ])
+    else:
+        keys.append([
+            InlineKeyboardButton(
+                text='Перейти к профилю волонтера',
+                callback_data=cb_start.new('volunteer_menu'),
             )
         ])
     keys.append([InlineKeyboardButton(text='Что может этот бот?',

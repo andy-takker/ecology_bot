@@ -165,7 +165,6 @@ async def choose_volunteer_type_for_event(query: CallbackQuery,
             data['volunteer_types'] = {}
         match callback_data['name']:
             case 'objects' | 'page':
-                print(callback_data)
                 if callback_data['name'] == 'objects':
                     volunteer_type_id = int(callback_data['value'])
                     if volunteer_type_id not in data['volunteer_types'].keys():

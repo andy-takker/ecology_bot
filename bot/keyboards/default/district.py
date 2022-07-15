@@ -1,11 +1,12 @@
 from aiogram.types import InlineKeyboardMarkup
+from aiogram.utils.callback_data import CallbackData
 
 from keyboards.default.paginate_keyboard import get_paginate_keyboard
-from keyboards.inline.callback_data import cb_organization_register
 
 
-def get_district_keyboard(districts, page=1, per_page=10,
-                          chose_districts=None, with_chose=True, callback_data=cb_organization_register) -> InlineKeyboardMarkup:
+def get_district_keyboard(districts, callback_data:CallbackData,
+                          page=1, per_page=10,
+                          chose_districts=None, with_chose=True,) -> InlineKeyboardMarkup:
     return get_paginate_keyboard(
         objects=districts,
         callback_data=callback_data,

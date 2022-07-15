@@ -12,6 +12,7 @@ from filters.role import RoleFilter, AdminFilter
 from handlers.admin.dp import register_admin
 from handlers.commands import register_commands
 from handlers.organization.dp import register_organization
+from handlers.volunteer.dp import register_volunteer
 from middlewares.database import DatabaseMiddleWare
 from middlewares.role import RoleMiddleware
 
@@ -33,6 +34,7 @@ async def main():
     register_admin(dp=dp)
     register_commands(dp=dp)
     register_organization(dp=dp)
+    register_volunteer(dp=dp)
 
     try:
         await dp.start_polling()

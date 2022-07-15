@@ -5,6 +5,7 @@ from loguru import logger
 from keyboards.default.activity import get_activity_keyboard
 from keyboards.default.district import get_district_keyboard
 from keyboards.default.start import get_start_keyboard
+from keyboards.inline.callback_data import cb_organization_register
 from services.repository import Repo
 from states.registration import OrganizationRegistration
 
@@ -26,7 +27,10 @@ async def choose_activities(call: CallbackQuery, state: FSMContext,
     await call.bot.send_message(
         chat_id=call.from_user.id,
         text=START_MESSAGE,
-        reply_markup=get_activity_keyboard(activities),
+        reply_markup=get_activity_keyboard(
+            activities=activities,
+            callback_data=cb_organization_register,
+        ),
     )
 
 
@@ -47,7 +51,8 @@ async def save_activities(query: CallbackQuery, state: FSMContext, repo: Repo):
         chat_id=query.from_user.id,
         text=CHOOSING_DISTRICTS_MESSAGE,
         reply_markup=get_district_keyboard(
-            districts=await repo.get_districts()),
+            districts=await repo.get_districts(),
+            callback_data=cb_organization_register),
     )
 
 
@@ -66,11 +71,11 @@ async def navigate_and_update_activities(query: CallbackQuery,
             data['activities']['page'] = int(callback_data['value'])
         activities = await repo.get_activities()
         await query.message.edit_reply_markup(
-            reply_markup=get_activity_keyboard(activities=activities,
-                                               page=data['activities'].get(
-                                                   'page', 1),
-                                               chose_activities=data[
-                                                   'activities'].keys())
+            reply_markup=get_activity_keyboard(
+                activities=activities,
+                callback_data=cb_organization_register,
+                page=data['activities'].get('page', 1),
+                chose_activities=data['activities'].keys()),
         )
 
 
@@ -116,6 +121,7 @@ async def navigate_and_update_districts(query: CallbackQuery,
         await query.message.edit_reply_markup(
             reply_markup=get_district_keyboard(
                 districts=await repo.get_districts(),
+                callback_data=cb_organization_register,
                 page=data['districts'].get('page', 1),
                 chose_districts=data['districts'].keys())
         )

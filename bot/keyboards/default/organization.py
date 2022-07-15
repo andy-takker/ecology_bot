@@ -8,7 +8,7 @@ from keyboards.inline.callback_data import cb_organization_menu, \
     cb_start
 
 
-def get_organization_keyboard(user: User):
+def get_organization_keyboard(user: User) -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(
             text='Добавьте событие',

@@ -8,9 +8,8 @@ from aiogram.types import Message, CallbackQuery
 from handlers.admin.management import get_admin_menu
 from keyboards.default.start import get_start_keyboard
 from keyboards.inline.callback_data import cb_start, \
-    cb_organization_menu, cb_organization_register
+    cb_organization_menu
 from services.repository import Repo
-from states.registration import OrganizationRegistration
 
 ONBOARDING_MESSAGE = """
 Привет! Это пилотная версия экобота Союза экологических организаций. В нем вы

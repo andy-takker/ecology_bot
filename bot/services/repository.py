@@ -5,7 +5,8 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from database.models import User, District, EcoActivity, Organization, \
-    Municipal, DistrictOrganization, Event, VolunteerType
+    Municipal, DistrictOrganization, Event, VolunteerType, Profile, \
+    EcoActivityOrganization, EcoActivityProfile
 
 
 class Repo:
@@ -16,7 +17,9 @@ class Repo:
 
     async def get_user(self, user_id: int) -> Optional[User]:
         query = select(User).filter_by(telegram_id=user_id).options(
-            selectinload(User.organizations), selectinload(User.profile))
+            selectinload(User.organizations),
+            selectinload(User.profile).selectinload(Profile.eco_activities),
+        )
         result = (await self.session.execute(query)).scalar()
         return result
 
@@ -182,3 +185,47 @@ class Repo:
         result: Optional[Organization] = (
             await self.session.execute(query)).scalars().first()
         return result
+
+    async def create_profile(self, data: dict) -> Profile:
+        async with self.session:
+            profile = Profile()
+            profile.user_id = (await self.get_user(data.get('user_id'))).id
+            profile.municipal_id = data['municipal_id']
+            profile.eco_activities = await self.get_activities(
+                ids=data['eco_activities'])
+            self.session.add(profile)
+            await self.session.commit()
+            await self.session.refresh(profile)
+            return profile
+
+    async def get_profile(self, user_id: int) -> Optional[Profile]:
+        query = select(Profile)\
+            .join(User, User.id == Profile.user_id)\
+            .filter(User.telegram_id == user_id)\
+            .options(
+                selectinload(Profile.municipal),
+                selectinload(Profile.eco_activities),
+            )
+        result = (await self.session.execute(query)).scalars().first()
+        return result
+
+    async def get_organizations_by_profile(
+            self, profile: Profile, eco_activity_id: int) -> list[Organization]:
+        query = select(Organization) \
+            .join(DistrictOrganization,
+                  Organization.id == DistrictOrganization.organization_id) \
+            .join(EcoActivityOrganization,
+                  Organization.id == EcoActivityOrganization.organization_id) \
+            .filter(
+            EcoActivityOrganization.eco_activity_id == eco_activity_id,
+            DistrictOrganization.district_id == profile.municipal.district_id
+        )
+        result = (await self.session.execute(query)).scalars().all()
+        return result
+
+    async def get_profiles_for_event(self, event: Event) -> list[Profile]:
+        """Возвращает список профилей для рассылок событий"""
+
+        query = select(Profile)\
+            .join(EcoActivityProfile, Profile.id == EcoActivityProfile.profile_id)\
+            .filter(0

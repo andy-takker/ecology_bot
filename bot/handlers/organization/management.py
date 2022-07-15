@@ -4,6 +4,7 @@ from aiogram.types import CallbackQuery
 from keyboards.default.municipal import get_municipal_keyboard
 from keyboards.default.organization import get_checked_organizations_keyboard, \
     get_organization_keyboard
+from keyboards.inline.callback_data import cb_organization_menu
 from services.repository import Repo
 from states.management import OrganizationManagement
 
@@ -48,7 +49,10 @@ async def get_invite_link_choose_municipal(query: CallbackQuery,
     await query.bot.send_message(
         chat_id=query.from_user.id,
         text="Выберите муниципальный округ для получения ссылки в чат",
-        reply_markup=get_municipal_keyboard(municipals),
+        reply_markup=get_municipal_keyboard(
+            municipals=municipals,
+            callback_data=cb_organization_menu,
+        ),
     )
 
 
@@ -61,10 +65,11 @@ async def get_invite_link_navigate_municipal(query: CallbackQuery,
         if callback_data['name'] == 'page':
             data['municipal_page'] = int(callback_data['value'])
         await query.message.edit_reply_markup(
-            reply_markup=get_municipal_keyboard(municipals=municipals,
-                                                page=data.get(
-                                                    'municipal_page', 1),
-                                                )
+            reply_markup=get_municipal_keyboard(
+                municipals=municipals,
+                callback_data=cb_organization_menu,
+                page=data.get('municipal_page', 1),
+            )
         )
 
 
