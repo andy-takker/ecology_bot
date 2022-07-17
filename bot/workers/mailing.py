@@ -15,7 +15,6 @@ def execute_mailing(self, event_id: int) -> None:
 
 async def _execute_mailing(event_id: int) -> None:
     """Выполняет рассылку по волонтерам"""
-    print('test')
     settings = get_settings()
     AsyncSession = get_async_session_maker(
         db_url=settings.SQLALCHEMY_DATABASE_URI)
@@ -28,4 +27,3 @@ async def _execute_mailing(event_id: int) -> None:
     for profile in profiles:
         await bot.send_message(chat_id=profile.user.telegram_id, text=event.message,parse_mode=types.ParseMode.MARKDOWN)
     await bot.close()
-    print('close test')
