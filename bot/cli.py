@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 from config import get_settings
 from database.engine import get_engine, get_async_session_maker
+from database.utils import add_admin_users
 from filters.role import RoleFilter, AdminFilter
 from handlers.admin.dp import register_admin
 from handlers.commands import register_commands

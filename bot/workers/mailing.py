@@ -1,6 +1,6 @@
 import asyncio
 
-from aiogram import Bot
+from aiogram import Bot, types
 
 from config import get_settings
 from database.engine import get_async_session_maker
@@ -24,6 +24,8 @@ async def _execute_mailing(event_id: int) -> None:
     session = AsyncSession()
     repo = Repo(session=session)
     event = await repo.get_event(event_id)
-    await bot.send_message(chat_id=292990139, text=event.message)
+    profiles = await repo.get_profiles_for_event(event=event)
+    for profile in profiles:
+        await bot.send_message(chat_id=profile.user.telegram_id, text=event.message,parse_mode=types.ParseMode.MARKDOWN)
     await bot.close()
     print('close test')

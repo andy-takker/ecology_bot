@@ -60,6 +60,16 @@ def get_volunteer_keyboard(user: User) -> InlineKeyboardMarkup:
         ])
     buttons.append([
         InlineKeyboardButton(
+            text='Подходящие события',
+            callback_data=cb_volunteer_menu.new(
+                name='volunteer_menu',
+                action='filter_my_events',
+                value=True,
+            )
+        )
+    ])
+    buttons.append([
+        InlineKeyboardButton(
             text='Назад',
             callback_data=cb_start.new(
                 name='go_to_main_menu',

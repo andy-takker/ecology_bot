@@ -9,6 +9,7 @@ class OrganizationManagement(StatesGroup):
 class VolunteerManagement(StatesGroup):
     menu = State()
     activity_info = State()
+    filter_events = State()
     change_activity = State()
     change_district = State()
     change_municipal = State()

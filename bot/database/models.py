@@ -2,7 +2,7 @@ import enum
 from typing import List
 
 from sqlalchemy import Column, BigInteger, ForeignKey, String, Boolean, \
-    DateTime, Integer
+    DateTime, Integer, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import ChoiceType
 
@@ -52,7 +52,7 @@ class District(PkMixin, Base):
 class User(PkMixin, TimestampMixin, Base):
     """Пользователи"""
     telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
-    is_superuser = Column(Boolean, default=False)
+    is_admin = Column(Boolean, default=False)
 
     organizations: List = relationship('Organization', back_populates='creator')
     profile = relationship('Profile', back_populates='user', uselist=False)
@@ -167,6 +167,9 @@ class DistrictOrganization(PkMixin, Base):
 
 class Municipal(PkMixin, Base):
     """Муниципальный округ"""
+    __table_args__ = (
+        UniqueConstraint('district_id', 'name'),
+    )
     district_id = Column(
         BigInteger,
         ForeignKey('district.id'),
@@ -220,9 +223,9 @@ class Event(PkMixin, TimestampMixin, Base):
     @property
     def message(self):
         if self.type == EventType.DEFAULT:
-            return f"В МО {self.municipals[0]} проходит мероприятие {self.name}\n" \
-                   f"Оно относится к активностям: {', '.join(a.name for a in self.eco_activities).lower()}" \
-                   f"Описание:\n{self.description} \n\n Его проводит {self.organization}"
+            return f"В МО {self.municipals[0]} проходит мероприятие *\"{self.name}\"*\n" \
+                   f"Оно относится к активностям: {', '.join(a.name for a in self.eco_activities).lower()}\n " \
+                   f"\nОписание:\n{self.description} \n\n Его проводит организация *\"{self.organization}\"*"
         elif self.type == EventType.RECRUITMENT:
             return f"{self.organization} нужны " \
                    f"{', '.join(v.name for v in self.volunteer_types).lower()} волонтеры в МО " \

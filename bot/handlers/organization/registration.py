@@ -2,6 +2,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, Message
 from loguru import logger
 
+from config import get_settings
 from keyboards.default.activity import get_activity_keyboard
 from keyboards.default.district import get_district_keyboard
 from keyboards.default.start import get_start_keyboard
@@ -144,3 +145,10 @@ async def save_name(msg: Message, state: FSMContext, repo: Repo):
              f'Организация направлена на модерацию. Ожидайте!',
         reply_markup=get_start_keyboard(
             user=await repo.get_user(user_id=msg.from_user.id)))
+    settings = get_settings()
+    for admin in settings.ADMINS:
+        await msg.bot.send_message(
+            chat_id=admin,
+            text=f'Добавлена новая организация: {msg.text}.\n'
+                 f'Нужно промодерировать!'
+        )

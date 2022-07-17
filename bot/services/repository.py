@@ -6,7 +6,8 @@ from sqlalchemy.orm import selectinload
 
 from database.models import User, District, EcoActivity, Organization, \
     Municipal, DistrictOrganization, Event, VolunteerType, Profile, \
-    EcoActivityOrganization, EcoActivityProfile, EcoActivityEvent
+    EcoActivityOrganization, EcoActivityProfile, EcoActivityEvent, \
+    MunicipalEvent
 
 
 class Repo:
@@ -23,9 +24,9 @@ class Repo:
         result = (await self.session.execute(query)).scalar()
         return result
 
-    async def create_user(self, telegram_id: int):
+    async def create_user(self, telegram_id: int, is_admin: bool = False):
         async with self.session:
-            user = User(telegram_id=telegram_id)
+            user = User(telegram_id=telegram_id,is_admin=is_admin)
             self.session.add(user)
             await self.session.commit()
             await self.session.refresh(user)
@@ -129,7 +130,6 @@ class Repo:
             await self.session.commit()
 
     async def create_event(self, data: dict) -> Event:
-        print(data)
         async with self.session:
             event = Event()
             event.name = data.get('name')
@@ -199,13 +199,13 @@ class Repo:
             return profile
 
     async def get_profile(self, user_id: int) -> Optional[Profile]:
-        query = select(Profile)\
-            .join(User, User.id == Profile.user_id)\
-            .filter(User.telegram_id == user_id)\
+        query = select(Profile) \
+            .join(User, User.id == Profile.user_id) \
+            .filter(User.telegram_id == user_id) \
             .options(
-                selectinload(Profile.municipal),
-                selectinload(Profile.eco_activities),
-            )
+            selectinload(Profile.municipal),
+            selectinload(Profile.eco_activities),
+        )
         result = (await self.session.execute(query)).scalars().first()
         return result
 
@@ -226,6 +226,25 @@ class Repo:
     async def get_profiles_for_event(self, event: Event) -> list[Profile]:
         """Возвращает список профилей для рассылок событий"""
 
-        query = select(Profile)\
-            .join(EcoActivityProfile, Profile.id == EcoActivityProfile.profile_id)\
-            .join(EcoActivityEvent, )
+        query = select(Profile).options(selectinload(Profile.user)) \
+            .join(EcoActivityProfile,
+                  Profile.id == EcoActivityProfile.profile_id) \
+            .join(EcoActivityEvent, EcoActivityProfile.eco_activity_id == EcoActivityEvent.eco_activity_id)\
+            .join(MunicipalEvent, MunicipalEvent.event_id == EcoActivityEvent.event_id)\
+            .filter(EcoActivityEvent.event_id == event.id,MunicipalEvent.municipal_id == Profile.municipal_id)
+        result = (await self.session.execute(query)).scalars().all()
+        return result
+
+    async def get_events_for_profile(self, profile: Profile) -> list[Event]:
+        query = select(Event)\
+            .join(EcoActivityEvent, Event.id == EcoActivityEvent.event_id)\
+            .join(EcoActivityProfile,EcoActivityEvent.eco_activity_id == EcoActivityProfile.eco_activity_id)\
+            .join(MunicipalEvent, Event.id ==MunicipalEvent.event_id)\
+            .filter(EcoActivityProfile.profile_id == profile.id, MunicipalEvent.municipal_id == profile.municipal_id)
+        result = (await self.session.execute(query)).scalars().all()
+        return result
+
+    async def get_admins(self ) -> list[User]:
+        query = select(User).filter_by(is_admin=True)
+        result = (await self.session.execute(query)).scalars().all()
+        return result

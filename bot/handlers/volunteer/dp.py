@@ -3,7 +3,7 @@ from aiogram import Dispatcher
 from filters.several import SeveralCallbackDataFilter
 from handlers.commands import user_start
 from handlers.volunteer.management import volunteer_menu, \
-    volunteer_activity_menu
+    volunteer_activity_menu, volunteer_filter_events_menu
 from handlers.volunteer.registration import choose_district_for_volunteer, \
     choose_municipal_for_volunteer, choose_eco_activities_for_volunteer
 from keyboards.inline.callback_data import cb_start, cb_volunteer_register, \
@@ -76,6 +76,20 @@ def register_volunteer(dp: Dispatcher) -> None:
     )
     dp.register_callback_query_handler(
         volunteer_menu,
-        cb_volunteer_menu.filter(),
+        cb_volunteer_menu.filter(action='volunteer_menu', name='back',
+                                 value='back'),
         state=VolunteerManagement.activity_info,
+    )
+    dp.register_callback_query_handler(
+        volunteer_filter_events_menu,
+        cb_volunteer_menu.filter(name='volunteer_menu',
+                                 action='filter_my_events',
+                                 ),
+        state=VolunteerManagement.menu,
+    )
+    dp.register_callback_query_handler(
+        volunteer_menu,
+        cb_volunteer_menu.filter(action='volunteer_menu', name='back',
+                                 value='back'),
+        state=VolunteerManagement.filter_events,
     )

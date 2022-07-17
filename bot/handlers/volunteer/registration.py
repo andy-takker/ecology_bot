@@ -80,7 +80,7 @@ async def choose_municipal_for_volunteer(
                 await VolunteerRegister.choose_activity_type.set()
                 await query.bot.send_message(
                     chat_id=query.from_user.id,
-                    text="Выбери интересующие тебя активности."
+                    text="Выбери интересующие тебя активности.\n"
                          "По ним тебе будет приходит информация.",
                     reply_markup=get_activity_keyboard(
                         activities=activities,
@@ -149,7 +149,8 @@ async def choose_eco_activities_for_volunteer(
                 user = await repo.get_user(user_id=query.from_user.id)
                 await query.bot.send_message(
                     chat_id=query.from_user.id,
-                    text='Мы пришлем тебе уведомления на основе подписок!'
+                    text='Поздравляем!!! Профиль зарегистрирован!!!\n\n'
+                         'Мы пришлем тебе уведомления на основе подписок!'
                          'Также ты можешь зайти в меню каждой подписки и'
                          'посмотреть подробности',
                     reply_markup=get_volunteer_keyboard(user=user),

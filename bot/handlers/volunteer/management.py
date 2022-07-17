@@ -41,12 +41,14 @@ async def volunteer_activity_menu(
     )
     msgs = []
     if organizations:
-        msgs.append("В твоем районе есть вот эти организации:\n")
+        msgs.append("В твоем районе c такой активностью"
+                    " есть вот эти организации:\n")
         for org in organizations:
             msgs.append(f'*{org.name}*\n')
     else:
         msgs.append("В твоем районе не зарегистрированы экологические"
-                    " организации. Попробуй выбрать другой район. ")
+                    " организации с такой направленностью. "
+                    "Попробуй выбрать другой район. ")
     msgs.append("Тебе обязательно придут уведомления о мероприятиях. ")
     await query.bot.send_message(
         chat_id=query.from_user.id,
@@ -54,5 +56,32 @@ async def volunteer_activity_menu(
         reply_markup=get_back_keyboard(
             callback_data=cb_volunteer_menu,
             action='volunteer_menu',
-        ),parse_mode=types.ParseMode.MARKDOWN,
+        ), parse_mode=types.ParseMode.MARKDOWN,
+    )
+
+
+async def volunteer_filter_events_menu(
+        query: CallbackQuery,
+        callback_data: dict,
+        state: FSMContext,
+        repo: Repo,
+) -> None:
+    await query.message.edit_reply_markup(reply_markup=None)
+    await VolunteerManagement.filter_events.set()
+    profile = await repo.get_profile(user_id=query.from_user.id)
+    events = await repo.get_events_for_profile(profile=profile)
+    for e in events:
+        event = await repo.get_event(event_id=e.id)
+        await query.bot.send_message(
+            chat_id=query.from_user.id,
+            text=event.message,
+            parse_mode=types.ParseMode.MARKDOWN,
+        )
+    await query.bot.send_message(
+        chat_id=query.from_user.id,
+        text=f'Под твой профиль подходит {len(events)} мероприятий',
+        reply_markup=get_back_keyboard(
+            callback_data=cb_volunteer_menu,
+            action='volunteer_menu',
+        )
     )
