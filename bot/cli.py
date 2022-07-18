@@ -3,12 +3,9 @@ import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from loguru import logger
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import sessionmaker
 
 from config import get_settings
-from database.engine import get_engine, get_async_session_maker
-from database.utils import add_admin_users
+from database.engine import get_async_session_maker
 from filters.role import RoleFilter, AdminFilter
 from handlers.admin.dp import register_admin
 from handlers.commands import register_commands
@@ -36,6 +33,7 @@ async def main():
     register_commands(dp=dp)
     register_organization(dp=dp)
     register_volunteer(dp=dp)
+
 
     try:
         await dp.start_polling()

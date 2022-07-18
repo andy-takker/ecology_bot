@@ -1,9 +1,11 @@
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.webhook import SendMessage
 from aiogram.types import CallbackQuery, Message
 from loguru import logger
 
 from config import get_settings
 from keyboards.default.activity import get_activity_keyboard
+from keyboards.default.back import get_back_keyboard
 from keyboards.default.district import get_district_keyboard
 from keyboards.default.start import get_start_keyboard
 from keyboards.inline.callback_data import cb_organization_register
@@ -94,11 +96,12 @@ async def save_districts(query: CallbackQuery,
         districts_ids = [i for i in data['districts'].keys() if
                          i != 'page']
         logger.info(f'Districts: {data}')
-        data['districts'] = districts_ids
+        data['districts_ids'] = districts_ids
     await OrganizationRegistration.next()
     await query.bot.send_message(
         chat_id=query.from_user.id,
         text=ENTER_NAME_MESSAGE,
+        reply_markup=get_back_keyboard(callback_data=cb_organization_register,action='input_name')
     )
 
 
@@ -107,6 +110,8 @@ async def navigate_and_update_districts(query: CallbackQuery,
                                         state: FSMContext,
                                         repo: Repo):
     """Навигация и выбор районов"""
+
+    await OrganizationRegistration.choosing_districts.set()
     async with state.proxy() as data:
         logger.warning(f'nav districts: {data}')
         if callback_data['name'] == 'objects':
@@ -129,9 +134,8 @@ async def navigate_and_update_districts(query: CallbackQuery,
 
 
 async def save_name(msg: Message, state: FSMContext, repo: Repo):
-    print(msg.text)
     async with state.proxy() as data:
-        districts = await repo.get_districts(data['districts'])
+        districts = await repo.get_districts(data['districts_ids'])
         activities = await repo.get_activities(data['activities'])
     await state.finish()
 

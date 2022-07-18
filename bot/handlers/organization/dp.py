@@ -71,6 +71,11 @@ def register_organization(dp: Dispatcher) -> None:
         state=OrganizationRegistration.choosing_districts,
 
     )
+    dp.register_callback_query_handler(
+        navigate_and_update_districts,
+        cb_organization_register.filter(action='input_name', name='back',value='back'),
+        state=OrganizationRegistration.enter_name,
+    )
     dp.register_message_handler(save_name,
                                 state=OrganizationRegistration.enter_name)
     dp.register_callback_query_handler(

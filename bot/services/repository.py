@@ -312,3 +312,16 @@ class Repo:
                     Profile.is_event_organizer == True)
         result = (await self.session.execute(query)).scalars().all()
         return result
+
+    async def get_district(self, name) -> Optional[District]:
+        query = select(District).filter_by(name=name)
+        return (await self.session.execute(query)).scalars().first()
+
+    async def get_municipal_by_name_and_district(self, name,district) -> Optional[District]:
+        query = select(Municipal).filter_by(name=name,district_id=district.id)
+        return (await self.session.execute(query)).scalars().first()
+
+    async def update_chat_link(self,municipal, chat_link):
+        async with self.session:
+            municipal.invite_link = chat_link
+            await self.session.commit()

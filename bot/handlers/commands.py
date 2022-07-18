@@ -3,6 +3,7 @@ from typing import Union
 from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import default_state
+from aiogram.dispatcher.webhook import SendMessage
 from aiogram.types import Message, CallbackQuery
 
 from handlers.admin.management import get_admin_menu
@@ -60,6 +61,34 @@ async def get_help(tg_obj: Union[CallbackQuery, Message], repo: Repo,
     )
 
 
+async def set_municipal_chat_link(message: Message, repo: Repo) -> None:
+    _, district, municipal, chat_link = message.text.split(' ')
+    district = district.replace('_', ' ')
+    municipal = municipal.replace('_', ' ')
+    district = await repo.get_district(name=district)
+    if district is not None:
+        municipal = await repo.get_municipal_by_name_and_district(
+            name=municipal,
+            district=district,
+        )
+        if municipal is not None:
+            await repo.update_chat_link(municipal, chat_link)
+            await message.bot.send_message(
+                chat_id=message.from_user.id,
+                text='Ссылка обновлена!',
+            )
+            return
+        await message.bot.send_message(
+            chat_id=message.from_user.id,
+            text='МО не найдено!',
+        )
+        return
+    await message.bot.send_message(
+        chat_id=message.from_user.id,
+        text='Район не найден!'
+    )
+
+
 def register_commands(dp: Dispatcher):
     dp.register_message_handler(user_start, commands=['start'], state="*")
     dp.register_callback_query_handler(
@@ -75,4 +104,8 @@ def register_commands(dp: Dispatcher):
         cb_start.filter(name='go_to_main_menu'), state='*')
 
     dp.register_message_handler(get_admin_menu, commands=['admin'], state='*',
+                                is_admin=True)
+
+    dp.register_message_handler(set_municipal_chat_link,
+                                commands=['setmunicipal'], state='*',
                                 is_admin=True)
