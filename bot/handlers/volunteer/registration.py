@@ -155,7 +155,7 @@ async def choose_eco_activities_for_volunteer(
                          'посмотреть подробности',
                     reply_markup=get_volunteer_keyboard(user=user),
                 )
-            case '_':
+            case _:
                 await query.bot.send_message(
                     chat_id=query.from_user.id,
                     text="Выбери интересующие тебя активности."

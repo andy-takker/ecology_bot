@@ -39,7 +39,7 @@ def get_volunteer_keyboard(user: User) -> InlineKeyboardMarkup:
     if not user.profile.is_event_organizer:
         buttons.append([
             InlineKeyboardButton(
-                text='Помочь организовать экособытие',
+                text='Хочу помочь организовать экособытие',
                 callback_data=cb_volunteer_menu.new(
                     name='volunteer_menu',
                     action='help_event_organize',
@@ -47,18 +47,7 @@ def get_volunteer_keyboard(user: User) -> InlineKeyboardMarkup:
                 )
             )
         ])
-    else:
-        buttons.append([
-            InlineKeyboardButton(
-                text='Изменить профиль волонтера-организатора',
-                callback_data=cb_volunteer_menu.new(
-                    name='volunteer_menu',
-                    action='change_event_organize',
-                    value=True,
-                )
-            )
-        ])
-    buttons.append([
+    buttons.extend([[
         InlineKeyboardButton(
             text='Подходящие события',
             callback_data=cb_volunteer_menu.new(
@@ -67,13 +56,30 @@ def get_volunteer_keyboard(user: User) -> InlineKeyboardMarkup:
                 value=True,
             )
         )
-    ])
-    buttons.append([
+    ], [
+        InlineKeyboardButton(
+            text='Инфо профиля',
+            callback_data=cb_volunteer_menu.new(
+                name='volunteer_menu',
+                action='info_profile',
+                value=True,
+            )
+        )
+    ], [
+        InlineKeyboardButton(
+            text='Удалить профиль',
+            callback_data=cb_volunteer_menu.new(
+                name='volunteer_menu',
+                action='delete_profile',
+                value=True,
+            )
+        )
+    ], [
         InlineKeyboardButton(
             text='Назад',
             callback_data=cb_start.new(
                 name='go_to_main_menu',
             )
         )
-    ])
+    ]])
     return InlineKeyboardMarkup(inline_keyboard=buttons)

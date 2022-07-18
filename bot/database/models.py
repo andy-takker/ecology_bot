@@ -97,6 +97,16 @@ class Profile(PkMixin, TimestampMixin, Base):
     def __str__(self):
         return f'Profile {self.id} ({self.user_id})'
 
+    @property
+    def info(self) -> str:
+        msg = f"Район: {self.municipal}\n\n" \
+               f"Активности: \n{ ','.join(e.name for e in self.eco_activities)}"
+        if self.is_event_organizer:
+            msg += '\n\n' \
+                   'Ты также подписан(а) на сообщения об организации мероприятий.\n' \
+                   f'Имя: {self.name}\nВозраст: {self.age}\n' \
+                   f'Виды помощи, которые ты указал(а):\n{ ", ".join(v.name for v in self.volunteer_types)}'
+        return msg
 
 class Organization(PkMixin, TimestampMixin, Base):
     """Организации"""
@@ -227,9 +237,9 @@ class Event(PkMixin, TimestampMixin, Base):
                    f"Оно относится к активностям: {', '.join(a.name for a in self.eco_activities).lower()}\n " \
                    f"\nОписание:\n{self.description} \n\n Его проводит организация *\"{self.organization}\"*"
         elif self.type == EventType.RECRUITMENT:
-            return f"{self.organization} нужны " \
+            return f"Организации *\"{self.organization}\"* нужны: " \
                    f"{', '.join(v.name for v in self.volunteer_types).lower()} волонтеры в МО " \
-                   f"{self.municipals[0]}\n\nОписание:\n{self.description}"
+                   f"*{self.municipals[0]}*\n\nОписание:\n{self.description}"
         return ""
 
 
@@ -257,7 +267,7 @@ class VolunteerTypeProfile(PkMixin, Base):
     )
     profile_id = Column(
         BigInteger,
-        ForeignKey('profile.id'),
+        ForeignKey('profile.id', ondelete='CASCADE'),
         index=True,
         nullable=False,
     )
@@ -319,7 +329,7 @@ class Mailing(PkMixin, TimestampMixin, Base):
 
 
 class EcoActivityProfile(PkMixin, Base):
-    profile_id = Column(BigInteger, ForeignKey('profile.id'), index=True,
+    profile_id = Column(BigInteger, ForeignKey('profile.id',ondelete='CASCADE'), index=True,
                         nullable=False)
     eco_activity_id = Column(BigInteger, ForeignKey('eco_activity.id'),
                              index=True, nullable=False)

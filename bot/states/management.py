@@ -13,3 +13,10 @@ class VolunteerManagement(StatesGroup):
     change_activity = State()
     change_district = State()
     change_municipal = State()
+    delete_profile = State()
+
+
+class VolunteerOrganizer(StatesGroup):
+    input_name = State()
+    input_age = State()
+    choose_volunteer_type = State()

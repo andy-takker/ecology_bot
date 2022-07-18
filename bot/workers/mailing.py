@@ -3,6 +3,7 @@ import asyncio
 from aiogram import Bot, types
 
 from config import get_settings
+from database import EventType
 from database.engine import get_async_session_maker
 from services.repository import Repo
 from workers.celery import celery
@@ -23,7 +24,13 @@ async def _execute_mailing(event_id: int) -> None:
     session = AsyncSession()
     repo = Repo(session=session)
     event = await repo.get_event(event_id)
-    profiles = await repo.get_profiles_for_event(event=event)
+    if event.type == EventType.DEFAULT:
+        profiles = await repo.get_profiles_for_event(event=event)
+
+    else:
+        profiles = await repo.get_profiles_for_recruitment(event=event)
     for profile in profiles:
-        await bot.send_message(chat_id=profile.user.telegram_id, text=event.message,parse_mode=types.ParseMode.MARKDOWN)
+        await bot.send_message(chat_id=profile.user.telegram_id,
+                               text=event.message,
+                               parse_mode=types.ParseMode.MARKDOWN)
     await bot.close()

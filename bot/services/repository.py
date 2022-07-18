@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from database.models import User, District, EcoActivity, Organization, \
     Municipal, DistrictOrganization, Event, VolunteerType, Profile, \
     EcoActivityOrganization, EcoActivityProfile, EcoActivityEvent, \
-    MunicipalEvent
+    MunicipalEvent, VolunteerTypeProfile, VolunteerTypeEvent
 
 
 class Repo:
@@ -26,7 +26,7 @@ class Repo:
 
     async def create_user(self, telegram_id: int, is_admin: bool = False):
         async with self.session:
-            user = User(telegram_id=telegram_id,is_admin=is_admin)
+            user = User(telegram_id=telegram_id, is_admin=is_admin)
             self.session.add(user)
             await self.session.commit()
             await self.session.refresh(user)
@@ -48,12 +48,11 @@ class Repo:
         result = (await self.session.execute(query)).scalars().all()
         return result
 
-    async def get_activities(self, ids: list[int] = None):
+    async def get_activities(self, ids: list[int] = None) -> list[EcoActivity]:
         query = select(EcoActivity)
         if ids is not None:
             query = query.filter(EcoActivity.id.in_(ids))
-        result = (await self.session.execute(query)).scalars().all()
-        return result
+        return (await self.session.execute(query)).scalars().all()
 
     async def create_organization(self, creator_id: int, name: str,
                                   districts: list[District],
@@ -147,8 +146,8 @@ class Repo:
             await self.session.refresh(event)
             return event
 
-    async def get_volunteer_types(self, ids: list[int] = None) -> Optional[
-        list[VolunteerType]]:
+    async def get_volunteer_types(self, ids: list[int] = None) -> list[
+        VolunteerType]:
         query = select(VolunteerType)
         if ids is not None:
             query = query.filter(VolunteerType.id.in_(ids))
@@ -205,6 +204,7 @@ class Repo:
             .options(
             selectinload(Profile.municipal),
             selectinload(Profile.eco_activities),
+            selectinload(Profile.volunteer_types),
         )
         result = (await self.session.execute(query)).scalars().first()
         return result
@@ -229,22 +229,86 @@ class Repo:
         query = select(Profile).options(selectinload(Profile.user)) \
             .join(EcoActivityProfile,
                   Profile.id == EcoActivityProfile.profile_id) \
-            .join(EcoActivityEvent, EcoActivityProfile.eco_activity_id == EcoActivityEvent.eco_activity_id)\
-            .join(MunicipalEvent, MunicipalEvent.event_id == EcoActivityEvent.event_id)\
-            .filter(EcoActivityEvent.event_id == event.id,MunicipalEvent.municipal_id == Profile.municipal_id)
+            .join(EcoActivityEvent,
+                  EcoActivityProfile.eco_activity_id == EcoActivityEvent.eco_activity_id) \
+            .join(MunicipalEvent,
+                  MunicipalEvent.event_id == EcoActivityEvent.event_id) \
+            .filter(EcoActivityEvent.event_id == event.id,
+                    MunicipalEvent.municipal_id == Profile.municipal_id)
         result = (await self.session.execute(query)).scalars().all()
         return result
 
     async def get_events_for_profile(self, profile: Profile) -> list[Event]:
-        query = select(Event)\
-            .join(EcoActivityEvent, Event.id == EcoActivityEvent.event_id)\
-            .join(EcoActivityProfile,EcoActivityEvent.eco_activity_id == EcoActivityProfile.eco_activity_id)\
-            .join(MunicipalEvent, Event.id ==MunicipalEvent.event_id)\
-            .filter(EcoActivityProfile.profile_id == profile.id, MunicipalEvent.municipal_id == profile.municipal_id)
+        query = select(Event) \
+            .join(EcoActivityEvent, Event.id == EcoActivityEvent.event_id) \
+            .join(EcoActivityProfile,
+                  EcoActivityEvent.eco_activity_id == EcoActivityProfile.eco_activity_id) \
+            .join(MunicipalEvent, Event.id == MunicipalEvent.event_id) \
+            .filter(EcoActivityProfile.profile_id == profile.id,
+                    MunicipalEvent.municipal_id == profile.municipal_id)
+        events = (await self.session.execute(query)).scalars().all()
+        if profile.is_event_organizer:
+            query = select(Event) \
+                .join(VolunteerTypeEvent,
+                      VolunteerTypeEvent.event_id == Event.id) \
+                .join(MunicipalEvent, Event.id == MunicipalEvent.event_id) \
+                .join(VolunteerTypeProfile, VolunteerTypeEvent.volunteer_type_id == VolunteerTypeProfile.volunteer_type_id)\
+                .filter(MunicipalEvent.municipal_id == profile.municipal_id, VolunteerTypeProfile.profile_id == profile.id)
+            result = (await self.session.execute(query)).scalars().all()
+            events.extend(result)
+        return events
+
+    async def get_admins(self) -> list[User]:
+        query = select(User).filter_by(is_admin=True)
         result = (await self.session.execute(query)).scalars().all()
         return result
 
-    async def get_admins(self ) -> list[User]:
-        query = select(User).filter_by(is_admin=True)
+    async def update_profile(self, user_id: int, activity_ids=None,
+                             municipal_id=None,
+                             age=None,
+                             name=None,
+                             volunteer_type_ids=None,
+                             is_event_organizer=None):
+        query = select(Profile).options(
+            selectinload(Profile.eco_activities),
+            selectinload(Profile.volunteer_types)) \
+            .join(User, User.id == Profile.user_id).filter(
+            User.telegram_id == user_id)
+        async with self.session:
+            profile = (await self.session.execute(query)).scalars().first()
+            if municipal_id is not None:
+                profile.municipal_id = municipal_id
+            if activity_ids is not None:
+                profile.eco_activities = await self.get_activities(
+                    ids=activity_ids)
+            if age is not None:
+                profile.age = age
+            if name is not None:
+                profile.name = name
+            if volunteer_type_ids is not None:
+                profile.volunteer_types = await self.get_volunteer_types(
+                    ids=volunteer_type_ids)
+            if is_event_organizer is not None:
+                profile.is_event_organizer = is_event_organizer
+            await self.session.commit()
+
+    async def delete_profile(self, user_id: int) -> None:
+        async with self.session:
+            query = select(Profile).join(User,
+                                         User.id == Profile.user_id).filter(
+                User.telegram_id == user_id)
+            profile = (await self.session.execute(query)).scalars().first()
+            if profile is not None:
+                await self.session.delete(profile)
+            await self.session.commit()
+
+    async def get_profiles_for_recruitment(self, event: Event) -> list[Profile]:
+        query = select(Profile) \
+            .join(VolunteerTypeProfile,
+                  Profile.id == VolunteerTypeProfile.profile_id) \
+            .join(VolunteerTypeEvent,
+                  VolunteerTypeProfile.volunteer_type_id == VolunteerTypeEvent.volunteer_type_id) \
+            .filter(VolunteerTypeEvent.event_id == event.id,
+                    Profile.is_event_organizer == True)
         result = (await self.session.execute(query)).scalars().all()
         return result

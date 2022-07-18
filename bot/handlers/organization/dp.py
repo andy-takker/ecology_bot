@@ -204,7 +204,7 @@ def register_organization(dp: Dispatcher) -> None:
             cb_create_event.filter(action='choose_volunteer_type', name='page'),
             cb_create_event.filter(action='choose_volunteer_type',
                                    name='objects'),
-            cb_create_event.filter(action='choose_volunteer_type', name='next')
+            cb_create_event.filter(action='choose_volunteer_type', name='next'),
         ]),
         state=CreateEvent.choose_volunteer_type,
     )
