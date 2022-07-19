@@ -1,10 +1,12 @@
 import enum
 from typing import List
 
+from flask_login import UserMixin
 from sqlalchemy import Column, BigInteger, ForeignKey, String, Boolean, \
     DateTime, Integer, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import ChoiceType
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from database.base import Base
 from database.mixins import PkMixin, TimestampMixin
@@ -67,6 +69,8 @@ class User(PkMixin, TimestampMixin, Base):
         return any(map(lambda organization: organization.is_checked,
                        self.organizations))
 
+    def __str__(self) -> str:
+        return f'User ({self.telegram_id})'
 
 class Profile(PkMixin, TimestampMixin, Base):
     """Профиль пользователя"""
@@ -333,3 +337,17 @@ class EcoActivityProfile(PkMixin, Base):
                         nullable=False)
     eco_activity_id = Column(BigInteger, ForeignKey('eco_activity.id'),
                              index=True, nullable=False)
+
+
+class Employee(Base, PkMixin, TimestampMixin, UserMixin):
+    login = Column(String(30))
+    password_hash = Column(String, nullable=False)
+
+    def get_id(self) -> int:
+        return self.id
+
+    def check_password(self, password: str) -> bool:
+        return check_password_hash(self.password_hash, password)
+
+    def set_password(self, password: str) -> None:
+        self.password_hash = generate_password_hash(password)

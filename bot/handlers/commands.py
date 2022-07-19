@@ -106,7 +106,7 @@ def register_commands(dp: Dispatcher):
         user_start,
         cb_start.filter(name='go_to_main_menu'), state='*')
 
-    dp.register_message_handler(get_admin_menu, commands=['admin'], state='*',
+    dp.register_message_handler(get_admin_menu, commands=['admin_panel'], state='*',
                                 is_admin=True)
 
     dp.register_message_handler(set_municipal_chat_link,

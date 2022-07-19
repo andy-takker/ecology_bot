@@ -4,7 +4,7 @@ from aiogram.dispatcher.middlewares import LifetimeControllerMiddleware
 
 
 class UserRole(Enum):
-    ADMIN = "admin"
+    ADMIN = "admin_panel"
     USER = "user"
 
 
