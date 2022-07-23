@@ -23,7 +23,8 @@ async def main():
     bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
     dp = Dispatcher(bot, storage=storage)
 
-    async_session_maker = get_async_session_maker(db_url=settings.SQLALCHEMY_DATABASE_URI)
+    async_session_maker = get_async_session_maker(
+        db_url=settings.SQLALCHEMY_DATABASE_URI)
     dp.middleware.setup(
         DatabaseMiddleWare(async_session_maker=async_session_maker))
     dp.middleware.setup(RoleMiddleware(settings.ADMINS))
@@ -33,7 +34,6 @@ async def main():
     register_commands(dp=dp)
     register_organization(dp=dp)
     register_volunteer(dp=dp)
-
 
     try:
         await dp.start_polling()

@@ -2,7 +2,7 @@ version: '3.9'
 services:
   database:
     image: postgres:13.4-buster
-    restart: always
+    restart: on-failure
     volumes:
       - ./database/data:/var/lib/postgresql/data
       - ./database/backups:/backups
@@ -13,7 +13,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
-      POSTGRES_HOST: ${POSTGRES_HOST:-database}
 
   redis:
     image: redis
@@ -31,12 +30,12 @@ services:
       - redis
       - worker
     command: python3 cli.py
-    restart: always
+    restart: on-failure
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/bot/Dockerfile
     environment:
-      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_HOST: database
       POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -48,7 +47,6 @@ services:
 
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       ADMINS: ${ADMINS}
-    privileged: true
 
   worker:
     image: bot
@@ -56,9 +54,31 @@ services:
       - database
       - redis
     command: celery -A workers.celery worker -l INFO
-    restart: always
+    restart: on-failure
     environment:
-      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_HOST: database
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      ADMINS: ${ADMINS}
+
+  admin:
+    build:
+      context: .
+      dockerfile: ./docker/admin/Dockerfile
+    depends_on:
+      - database
+    restart: on-failure
+    command: gunicorn -c gunicorn_conf.py wsgi:app
+    environment:
+      POSTGRES_HOST: database
       POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -70,6 +90,13 @@ services:
 
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       ADMINS: ${ADMINS}
+
+  nginx:
+    build: ./docker/nginx
+    ports:
+      - "1337:80"
+    depends_on:
+      - admin
 
 volumes:
   redis_data:

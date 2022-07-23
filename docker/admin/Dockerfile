@@ -4,8 +4,8 @@ RUN apt update && apt install -y --no-install-recommends build-essential wget un
 ENV TZ="Europe/Moscow"
 RUN python3 -m pip install -U pip
 
-WORKDIR /bot
-ADD /requirements.txt /
+WORKDIR /admin
+ADD /docker/admin/requirements.txt /
 RUN python3 -m pip install -r /requirements.txt --no-cache-dir
 
 ARG TELEGRAM_BOT_TOKEN
@@ -21,5 +21,5 @@ ARG REDIS_HOST
 ARG REDIS_PORT
 ARG REDIS_PASSWORD
 
-COPY ./bot /bot
+COPY /admin/ /admin
 
