@@ -18,6 +18,7 @@ alphabet = digits + ascii_lowercase + '_'
 
 db = get_db()
 
+
 class LoginLink(MenuLink):
     def is_visible(self):
         return not current_user.is_authenticated
@@ -38,6 +39,7 @@ class LogoutLink(MenuLink):
 
     def get_url(self):
         return url_for('login.logout')
+
 
 class LoginForm(FlaskForm):
     login = StringField(
@@ -67,9 +69,8 @@ def redirect_dest(fallback) -> Response:
     try:
         dest_url = url_for(dest)
         return redirect(dest_url)
-    except BuildError:
+    except (BuildError, TypeError):
         return redirect(fallback)
-
 
 
 class LoginView(BaseView):
